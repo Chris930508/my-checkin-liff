@@ -1,45 +1,36 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GPS 打卡系統</title>
-    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-    <style>
-        body { font-family: sans-serif; text-align: center; padding-top: 50px; }
-        .loading { color: #888; }
-    </style>
-</head>
-<body>
-    <h2 id="status">正在取得位置...</h2>
-    <p class="loading">請允許權限以完成打卡</p>
+async function main() {
+    try {
+        // 1. 初始化 LIFF
+        await liff.init({ liffId: "你的_LIFF_ID" });
 
-    <script>
-        async function main() {
-            
-            await liff.init({ liffId: "https://liff.line.me/2009668995-lcgnyksh" });
+        if (!liff.isLoggedIn()) {
+            liff.login();
+        } else {
+            // 2. 取得定位
+            navigator.geolocation.getCurrentPosition(async function(pos) {
+                const lat = pos.coords.latitude;
+                const lng = pos.coords.longitude;
 
-            if (!liff.isLoggedIn()) {
-                liff.login();
-            } else {
-                navigator.geolocation.getCurrentPosition(function(pos) {
-                    const lat = pos.coords.latitude;
-                    const lng = pos.coords.longitude;
-                    
-                    // 傳送格式給你的 C# 後端解析
-                    liff.sendMessages([{
+                try {
+                    // 3. 🚀 關鍵：使用 await 確保訊息「傳完」才關窗
+                    await liff.sendMessages([{
                         type: 'text',
                         text: `打卡座標:${lat},${lng}`
-                    }]).then(() => {
-                        alert("位置已傳送！");
-                        liff.closeWindow();
-                    });
-                }, function(err) {
-                    document.getElementById('status').innerText = "❌ 抓取失敗，請開啟 GPS";
-                }, { enableHighAccuracy: true });
-            }
+                    }]);
+                    
+                    // 傳送成功後才關閉
+                    liff.closeWindow(); 
+                } catch (sendError) {
+                    // 如果沒開 Scopes，這裡會跳錯誤
+                    alert("傳送失敗，請檢查 Scopes: " + sendError.message);
+                }
+
+            }, function(err) {
+                alert("GPS 錯誤: " + err.message);
+            }, { enableHighAccuracy: true });
         }
-        main();
-    </script>
-</body>
-</html>
+    } catch (initError) {
+        alert("初始化失敗: " + initError.message);
+    }
+}
+main();
