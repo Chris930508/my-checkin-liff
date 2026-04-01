@@ -1,32 +1,47 @@
-async function main() {
-    const statusEl = document.getElementById('status');
-    try {
-        statusEl.innerText = "正在初始化 LIFF...";
-        // 🚀 請確認這裡的 ID 是否正確
-        await liff.init({ liffId: "2009668995-lcgnyksh" });
-        statusEl.innerText = "LIFF 初始化成功，正在抓取 GPS...";
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPS 打卡系統</title>
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding-top: 50px; }
+        #status { color: #333; margin: 20px; }
+    </style>
+</head>
+<body>
+    <h2 id="status">正在初始化...</h2>
 
-        if (!liff.isLoggedIn()) {
-            liff.login();
-        } else {
-            navigator.geolocation.getCurrentPosition(async function(pos) {
-                const lat = pos.coords.latitude;
-                const lng = pos.coords.longitude;
-                statusEl.innerText = `抓到座標：${lat}, ${lng}`;
+    <script>
+        async function main() {
+            const statusEl = document.getElementById('status');
+            try {
+                // 🚀 請把下面這串換成你真正的 LIFF ID
+                await liff.init({ liffId: "你的_LIFF_ID" });
 
-                await liff.sendMessages([{
-                    type: 'text',
-                    text: `打卡座標:${lat},${lng}`
-                }]);
-                liff.closeWindow();
-            }, function(err) {
-                statusEl.innerText = "❌ GPS 失敗：" + err.message;
-            });
+                if (!liff.isLoggedIn()) {
+                    liff.login();
+                } else {
+                    statusEl.innerText = "正在取得 GPS 位置...";
+                    navigator.geolocation.getCurrentPosition(async function(pos) {
+                        const lat = pos.coords.latitude;
+                        const lng = pos.coords.longitude;
+                        statusEl.innerText = "傳送中...";
+
+                        await liff.sendMessages([{
+                            type: 'text',
+                            text: `打卡座標:${lat},${lng}`
+                        }]);
+                        liff.closeWindow();
+                    }, function(err) {
+                        statusEl.innerText = "❌ GPS 失敗：" + err.message;
+                    });
+                }
+            } catch (e) {
+                statusEl.innerHTML = `<span style="color:red">❌ 初始化失敗</span><br><small>${e.code}: ${e.message}</small>`;
+            }
         }
-    } catch (e) {
-        // 🚀 如果初始化失敗，這裡會顯示原因
-        statusEl.innerHTML = `<span style="color:red">❌ 初始化失敗</span><br><small>${e.code}: ${e.message}</small>`;
-        console.error(e);
-    }
-}
-main();
+        main();
+    </script> </body>
+</html>
