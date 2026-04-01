@@ -1,54 +1,32 @@
-<script>
-    async function main() {
-        try {
-            // 1. 初始化 LIFF (請記得換成你的 LIFF ID)
-            await liff.init({ liffId: "2009668995-lcgnyksh" });
+async function main() {
+    const statusEl = document.getElementById('status');
+    try {
+        statusEl.innerText = "正在初始化 LIFF...";
+        // 🚀 請確認這裡的 ID 是否正確
+        await liff.init({ liffId: "你的_LIFF_ID" });
+        statusEl.innerText = "LIFF 初始化成功，正在抓取 GPS...";
 
-            // 2. 檢查是否登入
-            if (!liff.isLoggedIn()) {
-                liff.login();
-            } else {
-                // 3. 呼叫瀏覽器 GPS
-                navigator.geolocation.getCurrentPosition(async function(pos) {
-                    const lat = pos.coords.latitude;
-                    const lng = pos.coords.longitude;
+        if (!liff.isLoggedIn()) {
+            liff.login();
+        } else {
+            navigator.geolocation.getCurrentPosition(async function(pos) {
+                const lat = pos.coords.latitude;
+                const lng = pos.coords.longitude;
+                statusEl.innerText = `抓到座標：${lat}, ${lng}`;
 
-                    document.getElementById('status').innerText = "📍 座標已取得，傳送中...";
-
-                    try {
-                        // 4. 🚀 關鍵：務必使用 await 確保訊息傳完才關視窗
-                        await liff.sendMessages([{
-                            type: 'text',
-                            text: `打卡座標:${lat},${lng}`
-                        }]);
-                        
-                        // 傳送成功，自動關閉視窗回到聊天室
-                        liff.closeWindow(); 
-                    } catch (sendError) {
-                        // 如果這裡報錯，通常是 LINE Developers 的 Scopes 沒勾選 chat_message.write
-                        alert("傳送失敗！請檢查 LINE 後台 Scopes 設定。\n錯誤訊息：" + sendError.message);
-                    }
-
-                }, function(err) {
-                    // GPS 失敗處理
-                    let msg = "定位失敗：";
-                    if (err.code == 1) msg += "使用者拒絕提供位置權限。";
-                    else if (err.code == 2) msg += "無法取得位置（GPS 訊號弱）。";
-                    else msg += err.message;
-                    
-                    document.getElementById('status').innerText = "❌ " + msg;
-                    alert(msg);
-                }, { 
-                    enableHighAccuracy: true, // 強制使用高精準度 (GPS)
-                    timeout: 10000,           // 十秒內要抓到，不然報錯
-                    maximumAge: 0             // 不使用快取位置
-                });
-            }
-        } catch (initError) {
-            alert("LIFF 初始化失敗，請檢查 ID 是否正確：" + initError.message);
+                await liff.sendMessages([{
+                    type: 'text',
+                    text: `打卡座標:${lat},${lng}`
+                }]);
+                liff.closeWindow();
+            }, function(err) {
+                statusEl.innerText = "❌ GPS 失敗：" + err.message;
+            });
         }
+    } catch (e) {
+        // 🚀 如果初始化失敗，這裡會顯示原因
+        statusEl.innerHTML = `<span style="color:red">❌ 初始化失敗</span><br><small>${e.code}: ${e.message}</small>`;
+        console.error(e);
     }
-
-    // 啟動程式
-    main();
-</script>
+}
+main();
